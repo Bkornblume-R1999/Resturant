@@ -1,68 +1,1337 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>BKorn Job Finder</title>
-    <link rel="stylesheet" href="style.css">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Test — Restaurant Ordering System</title>
+<style>
+/* ── RESET & BASE ── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; font-family: 'Segoe UI', system-ui, sans-serif; }
+body { min-height: 100vh; transition: background 0.3s, color 0.3s; }
+button { font-family: inherit; cursor: pointer; }
+input, select, textarea { font-family: inherit; }
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { border-radius: 3px; }
+
+/* ── THEME VARIABLES ── */
+body.dark {
+  --bg:      #0d0d0b;
+  --surf:    #141410;
+  --surf2:   #1c1c16;
+  --border:  #2a2a20;
+  --text:    #f0ead8;
+  --muted:   #7a7a68;
+  --accent:  #e8c547;
+  --danger:  #e05252;
+  --success: #4caf7d;
+  --orange:  #ff6b35;
+  --card:    #181814;
+  --input:   #1c1c16;
+  --shadow:  rgba(0,0,0,0.45);
+  --land-grad: radial-gradient(ellipse 70% 55% at 50% 38%, #1c1c10 0%, #0d0d0b 100%);
+}
+body.light {
+  --bg:      #f5f3ed;
+  --surf:    #ffffff;
+  --surf2:   #f0ede4;
+  --border:  #ddd8c8;
+  --text:    #1a1a10;
+  --muted:   #888870;
+  --accent:  #c8a000;
+  --danger:  #d03030;
+  --success: #2e8f5a;
+  --orange:  #e05520;
+  --card:    #faf8f2;
+  --input:   #f5f3ed;
+  --shadow:  rgba(0,0,0,0.10);
+  --land-grad: radial-gradient(ellipse 70% 55% at 50% 38%, #fffef5 0%, #f5f3ed 100%);
+}
+body { background: var(--bg); color: var(--text); }
+::-webkit-scrollbar-thumb { background: var(--border); }
+
+/* ── ANIMATIONS ── */
+@keyframes popIn   { from { opacity:0; transform:scale(0.92) } to { opacity:1; transform:scale(1) } }
+@keyframes slideIn { from { opacity:0; transform:translateX(16px) } to { opacity:1; transform:translateX(0) } }
+@keyframes fadeUp  { from { opacity:0; transform:translateY(22px) } to { opacity:1; transform:translateY(0) } }
+@keyframes spin    { from { transform:rotate(0deg) } to { transform:rotate(360deg) } }
+
+/* ── SCREENS ── */
+.screen { display: none; flex-direction: column; min-height: 100vh; }
+.screen.active { display: flex; }
+
+/* ═══════════════════════════════
+   LANDING
+═══════════════════════════════ */
+#landing {
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+  background: var(--land-grad);
+}
+.land-toggle-wrap { position: absolute; top: 20px; right: 24px; z-index: 10; }
+.land-content { position: relative; z-index: 2; text-align: center; animation: fadeUp 0.65s ease both; }
+.land-logo {
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: clamp(4rem, 10vw, 7rem);
+  font-weight: 900;
+  color: var(--accent);
+  line-height: 1;
+  letter-spacing: -0.02em;
+}
+body.dark .land-logo { text-shadow: 0 0 80px rgba(232,197,71,0.25); }
+.land-tagline {
+  font-size: 0.82rem;
+  color: var(--muted);
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  margin-top: 8px;
+  margin-bottom: 48px;
+}
+.role-cards { display: flex; gap: 20px; flex-wrap: wrap; justify-content: center; }
+.role-card {
+  background: var(--surf);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  padding: 2.5rem 2rem;
+  width: 210px;
+  cursor: pointer;
+  text-align: center;
+  transition: all 0.25s;
+}
+.role-card:hover { transform: translateY(-6px); box-shadow: 0 12px 32px var(--shadow); }
+.role-card.guest:hover { border-color: var(--accent); }
+.role-card.admin:hover { border-color: var(--orange); }
+.role-icon { font-size: 3rem; display: block; margin-bottom: 12px; }
+.role-title { font-family: Georgia, serif; font-size: 1.4rem; font-weight: 700; margin-bottom: 6px; color: var(--text); }
+.role-desc  { font-size: 0.8rem; color: var(--muted); line-height: 1.5; }
+
+/* ═══════════════════════════════
+   THEME TOGGLE BUTTON
+═══════════════════════════════ */
+.theme-btn {
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.35rem 0.65rem;
+  font-size: 0.9rem;
+  color: var(--muted);
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.theme-btn span { font-size: 0.75rem; }
+
+/* ═══════════════════════════════
+   MODAL OVERLAY
+═══════════════════════════════ */
+.modal-overlay {
+  display: none;
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.78);
+  backdrop-filter: blur(5px);
+  z-index: 2000;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+.modal-overlay.open { display: flex; }
+.modal-box {
+  background: var(--surf);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 2rem;
+  width: 100%;
+  max-width: 420px;
+  animation: popIn 0.25s ease;
+  max-height: 92vh;
+  overflow-y: auto;
+  box-shadow: 0 20px 60px var(--shadow);
+}
+.modal-title { font-family: Georgia, serif; font-size: 1.6rem; color: var(--accent); margin-bottom: 6px; }
+.modal-sub   { color: var(--muted); font-size: 0.86rem; margin-bottom: 18px; }
+
+/* ═══════════════════════════════
+   HEADER
+═══════════════════════════════ */
+.app-header {
+  background: var(--surf);
+  border-bottom: 1px solid var(--border);
+  padding: 0.85rem 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: sticky; top: 0; z-index: 100;
+  box-shadow: 0 1px 8px var(--shadow);
+  flex-shrink: 0;
+}
+.header-logo { font-family: Georgia, serif; font-size: 1.6rem; font-weight: 900; color: var(--accent); }
+.header-right { display: flex; align-items: center; gap: 10px; }
+.sync-dot-wrap { display: flex; align-items: center; gap: 5px; font-size: 0.73rem; color: var(--muted); }
+.sync-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--success); box-shadow: 0 0 5px var(--success); transition: all 0.3s; }
+.sync-dot.saving { background: var(--orange); box-shadow: none; }
+.exit-btn {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--muted);
+  padding: 0.33rem 0.85rem;
+  border-radius: 8px;
+  font-size: 0.8rem;
+  transition: all 0.2s;
+}
+.exit-btn:hover { border-color: var(--danger); color: var(--danger); }
+
+/* ═══════════════════════════════
+   TABS BAR (Consumer)
+═══════════════════════════════ */
+.tabs-bar {
+  background: var(--surf);
+  border-bottom: 1px solid var(--border);
+  padding: 0 1.5rem;
+  display: flex;
+  overflow-x: auto;
+  flex-shrink: 0;
+}
+.tab-btn {
+  padding: 0.85rem 1.1rem;
+  background: none;
+  border: none;
+  color: var(--muted);
+  font-size: 0.87rem;
+  font-weight: 400;
+  white-space: nowrap;
+  border-bottom: 2px solid transparent;
+  transition: all 0.2s;
+}
+.tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); font-weight: 600; }
+
+/* ═══════════════════════════════
+   CONSUMER LAYOUT
+═══════════════════════════════ */
+.consumer-body { flex: 1; display: flex; overflow: hidden; }
+
+/* MENU PANEL */
+.menu-panel { flex: 1; padding: 1.5rem; overflow-y: auto; }
+.menu-section-title { font-family: Georgia, serif; font-size: 1.4rem; margin-bottom: 1rem; color: var(--text); }
+.menu-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(195px, 1fr)); gap: 1rem; }
+.menu-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  overflow: hidden;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.menu-card:hover { border-color: var(--accent); transform: translateY(-3px); box-shadow: 0 8px 24px var(--shadow); }
+.menu-card-img { width: 100%; height: 130px; object-fit: cover; display: block; }
+.menu-card-placeholder {
+  width: 100%; height: 130px;
+  background: var(--surf2);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 2.5rem; color: var(--border);
+}
+.menu-card-body { padding: 1rem; }
+.menu-card-name { font-weight: 600; font-size: 0.95rem; margin-bottom: 4px; color: var(--text); }
+.menu-card-desc { font-size: 0.75rem; color: var(--muted); margin-bottom: 10px; line-height: 1.4; min-height: 2em; }
+.menu-card-footer { display: flex; align-items: center; justify-content: space-between; }
+.menu-card-price { font-family: monospace; font-size: 0.97rem; color: var(--accent); font-weight: 600; }
+.add-btn {
+  width: 32px; height: 32px;
+  border-radius: 8px;
+  background: var(--accent);
+  border: none;
+  color: #0a0a08;
+  font-size: 1.2rem;
+  font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+  transition: all 0.15s;
+}
+.add-btn:hover { opacity: 0.85; transform: scale(1.1); }
+
+/* CART PANEL */
+.cart-panel {
+  width: 320px;
+  border-left: 1px solid var(--border);
+  background: var(--surf);
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100vh - 110px);
+  overflow: hidden;
+  flex-shrink: 0;
+}
+.cart-header { padding: 1.1rem 1.4rem; border-bottom: 1px solid var(--border); }
+.cart-title { font-family: Georgia, serif; font-size: 1.15rem; color: var(--accent); }
+.cart-items { flex: 1; overflow-y: auto; padding: 0.6rem 1.4rem; }
+.cart-empty { text-align: center; padding: 2rem; color: var(--muted); font-size: 0.85rem; }
+.cart-item { display: flex; align-items: center; gap: 8px; padding: 0.6rem 0; border-bottom: 1px solid var(--border); }
+.cart-item-name { flex: 1; font-size: 0.84rem; color: var(--text); }
+.qty-row { display: flex; align-items: center; gap: 4px; }
+.qty-btn {
+  width: 23px; height: 23px;
+  border-radius: 6px;
+  background: var(--surf2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-size: 0.95rem;
+  display: flex; align-items: center; justify-content: center;
+  transition: all 0.15s;
+}
+.qty-btn:hover { background: var(--border); }
+.qty-num { font-family: monospace; font-size: 0.83rem; min-width: 18px; text-align: center; color: var(--text); }
+.cart-item-price { font-family: monospace; font-size: 0.8rem; color: var(--accent); min-width: 58px; text-align: right; }
+.cart-footer { padding: 1.1rem 1.4rem; border-top: 1px solid var(--border); }
+.cart-total-row { display: flex; justify-content: space-between; margin-bottom: 14px; }
+.cart-total-label { font-weight: 600; color: var(--text); }
+.cart-total-amt { font-family: monospace; font-size: 1.2rem; color: var(--accent); }
+.place-order-btn {
+  width: 100%;
+  background: var(--accent);
+  color: #0a0a08;
+  padding: 0.9rem;
+  border-radius: 12px;
+  font-weight: 700;
+  font-size: 0.93rem;
+  border: 1px solid transparent;
+  transition: all 0.3s;
+}
+.place-order-btn:disabled {
+  background: var(--border);
+  color: var(--muted);
+  cursor: not-allowed;
+}
+.place-order-btn.cooldown {
+  background: var(--surf2);
+  color: var(--muted);
+  cursor: not-allowed;
+  border-color: var(--border);
+}
+
+/* ═══════════════════════════════
+   ORDER CONFIRM MODAL
+═══════════════════════════════ */
+#orderConfirmModal .modal-box { text-align: center; max-width: 400px; border-radius: 22px; padding: 2.5rem 2rem; }
+.confirm-emoji { font-size: 3rem; margin-bottom: 10px; }
+.confirm-title { font-family: Georgia, serif; font-size: 1.75rem; color: var(--accent); margin-bottom: 6px; }
+.confirm-sub   { color: var(--muted); font-size: 0.86rem; margin-bottom: 4px; }
+.confirm-num   { font-family: monospace; font-size: 4rem; color: var(--accent); letter-spacing: 0.08em; margin: 0.4rem 0 0.8rem; line-height: 1; font-weight: 700; }
+.confirm-msg   { color: var(--text); font-size: 0.88rem; line-height: 1.6; margin-bottom: 18px; }
+.pending-badge {
+  display: inline-block;
+  padding: 0.28rem 1rem;
+  border-radius: 20px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  background: rgba(232,197,71,0.15);
+  color: var(--accent);
+  margin-bottom: 20px;
+}
+.done-btn {
+  width: 100%;
+  background: var(--accent);
+  color: #0a0a08;
+  padding: 0.95rem;
+  border-radius: 12px;
+  font-weight: 700;
+  font-size: 1rem;
+  border: none;
+  transition: all 0.2s;
+  margin-top: 8px;
+}
+.done-btn:hover { opacity: 0.88; }
+
+/* ═══════════════════════════════
+   EMPTY STATE
+═══════════════════════════════ */
+.empty-state { text-align: center; padding: 4rem 2rem; color: var(--muted); }
+.empty-state-icon { font-size: 3rem; opacity: 0.35; margin-bottom: 10px; }
+
+/* ═══════════════════════════════
+   ADMIN LAYOUT
+═══════════════════════════════ */
+.admin-body { flex: 1; padding: 1.5rem; display: flex; flex-direction: column; gap: 1.5rem; overflow-y: auto; }
+
+/* Stats */
+.stats-row { display: flex; gap: 1rem; flex-wrap: wrap; }
+.stat-card { background: var(--surf); border: 1px solid var(--border); border-radius: 14px; padding: 1.1rem 1.4rem; min-width: 155px; }
+.stat-label { font-size: 0.7rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 4px; }
+.stat-val   { font-family: monospace; font-size: 1.7rem; }
+
+/* Section card */
+.admin-section { background: var(--surf); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; }
+.admin-sec-header { padding: 1rem 1.4rem; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+.admin-sec-title  { font-family: Georgia, serif; font-size: 1.1rem; color: var(--accent); }
+
+/* Orders table */
+.orders-table-wrap { overflow-x: auto; }
+.orders-table { width: 100%; border-collapse: collapse; }
+.orders-table th { padding: 0.65rem 1.1rem; text-align: left; font-size: 0.7rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); border-bottom: 1px solid var(--border); }
+.orders-table td { padding: 0.85rem 1.1rem; border-bottom: 1px solid var(--border); font-size: 0.87rem; vertical-align: top; }
+.order-items-list { font-size: 0.78rem; color: var(--muted); }
+
+/* Status badges */
+.badge { display: inline-block; padding: 0.22rem 0.65rem; border-radius: 20px; font-size: 0.7rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; }
+.badge-pending  { background: rgba(232,197,71,0.15); color: #c8a000; }
+.badge-accepted { background: rgba(76,175,125,0.15); color: #2e8f5a; }
+.badge-declined { background: rgba(224,82,82,0.15);  color: #d03030; }
+
+/* Action buttons */
+.action-wrap { display: flex; gap: 6px; }
+.btn-accept, .btn-decline {
+  padding: 0.3rem 0.7rem;
+  border-radius: 7px;
+  font-size: 0.76rem;
+  font-weight: 600;
+  border: none;
+  transition: all 0.15s;
+}
+.btn-accept { background: rgba(76,175,125,0.18); color: var(--success); }
+.btn-accept:hover { background: var(--success); color: #fff; }
+.btn-decline { background: rgba(224,82,82,0.18); color: var(--danger); }
+.btn-decline:hover { background: var(--danger); color: #fff; }
+
+/* Admin menu tabs */
+.admin-tabs { display: flex; border-bottom: 1px solid var(--border); overflow-x: auto; padding: 0 1.4rem; }
+.admin-tab-btn {
+  padding: 0.7rem 1.05rem;
+  background: none;
+  border: none;
+  color: var(--muted);
+  font-size: 0.8rem;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  white-space: nowrap;
+  transition: all 0.2s;
+  font-weight: 400;
+}
+.admin-tab-btn.active { color: var(--orange); border-bottom-color: var(--orange); font-weight: 600; }
+.add-item-btn {
+  background: var(--orange);
+  color: #fff;
+  padding: 0.48rem 1.05rem;
+  border-radius: 9px;
+  border: none;
+  font-weight: 600;
+  font-size: 0.83rem;
+  transition: all 0.2s;
+}
+.add-item-btn:hover { opacity: 0.88; }
+
+/* Admin menu grid */
+.admin-menu-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 1rem; padding: 1.2rem 1.4rem; }
+.admin-item-card { background: var(--surf2); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+.admin-item-img { width: 100%; height: 110px; object-fit: cover; display: block; }
+.admin-item-placeholder { width: 100%; height: 110px; background: var(--card); display: flex; align-items: center; justify-content: center; font-size: 2rem; color: var(--border); }
+.admin-item-body { padding: 0.9rem; }
+.admin-item-name  { font-weight: 600; font-size: 0.93rem; color: var(--text); margin-bottom: 3px; }
+.admin-item-price { font-family: monospace; color: var(--accent); font-size: 0.87rem; margin-bottom: 4px; }
+.admin-item-desc  { font-size: 0.75rem; color: var(--muted); line-height: 1.4; }
+.admin-item-actions { display: flex; gap: 6px; margin-top: 10px; }
+.btn-edit, .btn-del {
+  flex: 1;
+  padding: 0.33rem 0;
+  border-radius: 7px;
+  font-size: 0.76rem;
+  font-weight: 600;
+  background: transparent;
+  transition: all 0.15s;
+}
+.btn-edit { border: 1px solid var(--border); color: var(--muted); }
+.btn-edit:hover { border-color: var(--accent); color: var(--accent); }
+.btn-del  { border: 1px solid rgba(224,82,82,0.3); color: var(--danger); }
+.btn-del:hover  { background: var(--danger); color: #fff; border-color: var(--danger); }
+
+/* ═══════════════════════════════
+   FORM ELEMENTS
+═══════════════════════════════ */
+.form-group { margin-bottom: 13px; }
+.form-label { display: block; font-size: 0.73rem; color: var(--muted); margin-bottom: 4px; letter-spacing: 0.05em; }
+.form-input, .form-select, .form-textarea {
+  width: 100%;
+  background: var(--input);
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  padding: 0.68rem 0.88rem;
+  color: var(--text);
+  font-size: 0.87rem;
+  outline: none;
+  transition: border-color 0.2s;
+}
+.form-input:focus, .form-select:focus, .form-textarea:focus { border-color: var(--accent); }
+.form-textarea { resize: vertical; min-height: 72px; }
+.form-select option { background: var(--surf); }
+
+/* Image upload zone */
+.img-upload-zone {
+  border: 2px dashed var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+  cursor: pointer;
+  background: var(--input);
+  transition: border-color 0.2s;
+  position: relative;
+}
+.img-upload-zone.has-img { border-color: var(--success); }
+.img-upload-zone:hover { border-color: var(--accent); }
+.img-preview { width: 100%; height: 140px; object-fit: cover; display: block; }
+.img-placeholder {
+  height: 100px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+.img-placeholder span:first-child { font-size: 1.8rem; }
+.img-remove-btn {
+  position: absolute; top: 6px; right: 6px;
+  width: 26px; height: 26px;
+  border-radius: 50%;
+  background: rgba(0,0,0,0.6);
+  border: none;
+  color: #fff;
+  font-size: 0.75rem;
+  display: flex; align-items: center; justify-content: center;
+}
+
+/* Modal action buttons */
+.modal-actions { display: flex; gap: 10px; margin-top: 16px; }
+.btn-primary {
+  flex: 1;
+  background: var(--accent);
+  color: #0a0a08;
+  padding: 0.78rem;
+  border-radius: 10px;
+  border: none;
+  font-weight: 700;
+  font-size: 0.88rem;
+  transition: all 0.2s;
+}
+.btn-primary:hover { opacity: 0.88; }
+.btn-primary.orange { background: var(--orange); color: #fff; }
+.btn-ghost {
+  flex: 1;
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--muted);
+  padding: 0.78rem;
+  border-radius: 10px;
+  font-weight: 500;
+  font-size: 0.88rem;
+  transition: all 0.2s;
+}
+.btn-ghost:hover { border-color: var(--muted); color: var(--text); }
+
+/* PIN input */
+.pin-input {
+  width: 100%;
+  background: var(--input);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 0.85rem 1rem;
+  color: var(--text);
+  font-family: monospace;
+  font-size: 1.3rem;
+  letter-spacing: 0.3em;
+  text-align: center;
+  outline: none;
+  margin-bottom: 8px;
+  transition: border-color 0.2s;
+}
+.pin-input:focus { border-color: var(--accent); }
+.pin-error { color: var(--danger); font-size: 0.8rem; min-height: 1.1em; margin-bottom: 12px; }
+
+/* ═══════════════════════════════
+   TOAST NOTIFICATIONS
+═══════════════════════════════ */
+#toast-container {
+  position: fixed;
+  bottom: 1.5rem; right: 1.5rem;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  pointer-events: none;
+}
+.toast {
+  background: var(--surf);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 0.85rem 1.2rem;
+  font-size: 0.87rem;
+  max-width: 280px;
+  color: var(--text);
+  box-shadow: 0 4px 16px var(--shadow);
+  animation: slideIn 0.25s ease;
+}
+.toast.success { border-left: 3px solid var(--success); }
+.toast.error   { border-left: 3px solid var(--danger);  }
+.toast.info    { border-left: 3px solid var(--accent);  }
+
+/* No orders/items text */
+.no-content { text-align: center; padding: 2.5rem; color: var(--muted); font-size: 0.88rem; }
+</style>
 </head>
-<body>
+<body class="dark">
 
-<header>
-    <button id="postJobBtn" style="display:none;">Post Job</button>
-    <h1 class="header-title" id="bkorn">BKorn Job Finder</h1>
-    <button id="logoutBtn" style="display:none;">Logout</button>
-    <button id="messagesBtn" style="display:none;">Messages</button>
-</header>
-
-<section id="authSection">
-    <form id="loginForm">
-        <h2>Login</h2>
-        <input type="text" id="username" placeholder="Username" required>
-        <input type="password" id="password" placeholder="Password" required>
-        <button type="submit">Login</button>
-        <p>Don't have an account? <a href="#" id="showRegister">Register here</a></p>
-    </form>
-
-    <form id="registerForm" style="display:none;">
-        <h2>Register</h2>
-        <input type="text" id="regUsername" placeholder="Username" required>
-        <input type="password" id="regPassword" placeholder="Password" required>
-        <button type="submit">Register</button>
-        <p>Already have an account? <a href="#" id="showLogin">Login here</a></p>
-    </form>
-</section>
-
-<section id="jobBoard" style="display:none;">
-    <input type="text" id="searchBar" placeholder="Search jobs..." style="display:none;">
-    <div id="jobList"></div>
-</section>
-
-<!-- Job Posting Overlay -->
-<div id="jobOverlay" class="overlay" style="display:none;">
-    <div class="overlay-content">
-        <span id="closeOverlay" class="close">&times;</span>
-        <form id="jobForm">
-            <h2>Post a Job</h2>
-            <input type="text" id="title" placeholder="Job Title" required>
-            <input type="text" id="description" placeholder="Job Description" required>
-            <input type="text" id="contact" placeholder="Contact Info" required>
-            <button type="submit">Post</button>
-        </form>
+<!-- ═══════════════════════════════════════════
+     SCREEN: LANDING
+════════════════════════════════════════════ -->
+<div id="landing" class="screen active">
+  <div class="land-toggle-wrap">
+    <button class="theme-btn" onclick="toggleTheme()" id="landThemeBtn">☀️ <span>Light</span></button>
+  </div>
+  <div class="land-content">
+    <div class="land-logo">Test</div>
+    <div class="land-tagline">Restaurant Ordering System</div>
+    <div class="role-cards">
+      <div class="role-card guest" onclick="enterConsumer()">
+        <span class="role-icon">🍽️</span>
+        <div class="role-title">Guest</div>
+        <div class="role-desc">Browse the menu &amp; place your order</div>
+      </div>
+      <div class="role-card admin" onclick="openAdminLogin()">
+        <span class="role-icon">🔑</span>
+        <div class="role-title">Admin</div>
+        <div class="role-desc">Manage menu &amp; process orders</div>
+      </div>
     </div>
+  </div>
 </div>
 
-<!-- Messenger Overlay -->
-<div id="chatOverlay" class="overlay" style="display:none;">
-    <div class="overlay-content">
-        <span id="closeChat" class="close">&times;</span>
-        <h2 id="chatWith"></h2>
-        <div id="chatMessages" class="chat-box"></div>
-        <form id="chatForm">
-            <input type="text" id="chatInput" placeholder="Type a message..." required />
-            <button type="submit">Send</button>
-        </form>
+<!-- ═══════════════════════════════════════════
+     SCREEN: CONSUMER
+════════════════════════════════════════════ -->
+<div id="consumerScreen" class="screen">
+  <!-- Header -->
+  <div class="app-header">
+    <div class="header-logo">Test</div>
+    <div class="header-right">
+      <div class="sync-dot-wrap"><div class="sync-dot" id="cSyncDot"></div><span id="cSyncLabel">Live</span></div>
+      <button class="theme-btn" onclick="toggleTheme()" id="cThemeBtn">☀️ <span>Light</span></button>
+      <button class="exit-btn" onclick="exitToLanding()">← Exit</button>
     </div>
+  </div>
+  <!-- Category tabs -->
+  <div class="tabs-bar" id="consumerTabs"></div>
+  <!-- Body -->
+  <div class="consumer-body">
+    <div class="menu-panel">
+      <div class="menu-section-title" id="menuSectionTitle"></div>
+      <div class="menu-grid" id="menuGrid"></div>
+    </div>
+    <div class="cart-panel">
+      <div class="cart-header"><div class="cart-title">🛒 Your Order</div></div>
+      <div class="cart-items" id="cartItems"><div class="cart-empty">Your cart is empty</div></div>
+      <div class="cart-footer">
+        <div class="cart-total-row">
+          <span class="cart-total-label">Total</span>
+          <span class="cart-total-amt" id="cartTotal">₱0.00</span>
+        </div>
+        <button class="place-order-btn" id="placeOrderBtn" onclick="placeOrder()" disabled>Place Order</button>
+      </div>
+    </div>
+  </div>
 </div>
 
-<script src="script.js"></script>
+<!-- ═══════════════════════════════════════════
+     SCREEN: ADMIN
+════════════════════════════════════════════ -->
+<div id="adminScreen" class="screen">
+  <!-- Header -->
+  <div class="app-header">
+    <div class="header-logo">Test</div>
+    <div class="header-right">
+      <div class="sync-dot-wrap"><div class="sync-dot" id="aSyncDot"></div><span id="aSyncLabel">Live</span></div>
+      <button class="theme-btn" onclick="toggleTheme()" id="aThemeBtn">☀️ <span>Light</span></button>
+      <button class="exit-btn" onclick="exitToLanding()">← Exit</button>
+    </div>
+  </div>
+  <div class="admin-body">
+    <!-- Stats -->
+    <div class="stats-row" id="statsRow"></div>
+    <!-- Orders -->
+    <div class="admin-section">
+      <div class="admin-sec-header">
+        <div class="admin-sec-title">📋 Customer Orders</div>
+      </div>
+      <div id="ordersWrap"><div class="no-content">No orders yet.</div></div>
+    </div>
+    <!-- Menu Management -->
+    <div class="admin-section">
+      <div class="admin-sec-header">
+        <div class="admin-sec-title">🍴 Menu Management</div>
+        <button class="add-item-btn" onclick="openAddItem()">+ Add Item</button>
+      </div>
+      <div class="admin-tabs" id="adminTabs"></div>
+      <div id="adminMenuGrid" class="admin-menu-grid"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     MODAL: ADMIN LOGIN
+════════════════════════════════════════════ -->
+<div class="modal-overlay" id="adminLoginModal">
+  <div class="modal-box">
+    <div class="modal-title">Admin Access</div>
+    <div class="modal-sub">Enter your 4-digit PIN to continue</div>
+    <input class="pin-input" id="pinInput" type="password" maxlength="4" placeholder="••••"
+      oninput="document.getElementById('pinError').textContent=''"
+      onkeydown="if(event.key==='Enter')checkPin()">
+    <div class="pin-error" id="pinError"></div>
+    <div class="modal-actions">
+      <button class="btn-ghost" onclick="closeModal('adminLoginModal')">Cancel</button>
+      <button class="btn-primary" onclick="checkPin()">Unlock</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     MODAL: ORDER CONFIRMED
+════════════════════════════════════════════ -->
+<div class="modal-overlay" id="orderConfirmModal">
+  <div class="modal-box">
+    <div class="confirm-emoji">🎉</div>
+    <div class="confirm-title">Order Placed!</div>
+    <div class="confirm-sub">Your order number is</div>
+    <div class="confirm-num" id="confirmNum">#—</div>
+    <div class="confirm-msg">Remember your number and please go toward to the cashier to proceed with your order.</div>
+    <div class="pending-badge">Awaiting Confirmation</div>
+    <button class="done-btn" onclick="closeOrderConfirm()">Done</button>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     MODAL: ADD / EDIT ITEM
+════════════════════════════════════════════ -->
+<div class="modal-overlay" id="itemFormModal">
+  <div class="modal-box">
+    <div class="modal-title" id="itemFormTitle">Add Item</div>
+    <div class="modal-sub" id="itemFormSub">Fill in the details below</div>
+    <input type="hidden" id="editItemId">
+
+    <div class="form-group">
+      <label class="form-label">Product Image</label>
+      <div class="img-upload-zone" id="imgUploadZone" onclick="document.getElementById('imgFileInput').click()">
+        <input type="file" id="imgFileInput" accept="image/*" style="display:none" onchange="handleImageUpload(event)">
+        <div id="imgPlaceholder" class="img-placeholder">
+          <span>📷</span>
+          <span>Click to upload image (max 2MB)</span>
+        </div>
+        <img id="imgPreview" class="img-preview" src="" alt="preview" style="display:none">
+        <button id="imgRemoveBtn" class="img-remove-btn" style="display:none" onclick="event.stopPropagation();clearImage()">✕</button>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Category</label>
+      <select class="form-select" id="itemCategory"></select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Item Name</label>
+      <input class="form-input" id="itemName" placeholder="e.g. Spaghetti Carbonara">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Price (₱)</label>
+      <input class="form-input" id="itemPrice" type="number" min="0" step="0.01" placeholder="0.00">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Description</label>
+      <textarea class="form-textarea" id="itemDesc" placeholder="Short description..."></textarea>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-ghost" onclick="closeModal('itemFormModal')">Cancel</button>
+      <button class="btn-primary orange" onclick="saveItem()">Save Item</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast Container -->
+<div id="toast-container"></div>
+
+<script>
+// ══════════════════════════════════════════════
+// CONSTANTS & STATE
+// ══════════════════════════════════════════════
+const CATEGORIES = ["Drinks","Desserts","Pasta","Main Course","Snacks","Others"];
+const CAT_ICONS  = { Drinks:"🥤", Desserts:"🍰", Pasta:"🍝", "Main Course":"🍖", Snacks:"🍟", Others:"🍱" };
+const ADMIN_PIN  = "0000";
+const COOLDOWN_SEC = 5;
+const LS = { menu:"test:menu", orders:"test:orders", counter:"test:counter" };
+
+let state = {
+  dark: true,
+  mode: null,         // null | 'consumer' | 'admin'
+  menu: {},           // { category: [items] }
+  orders: [],
+  counter: 1000,
+  cart: [],           // consumer cart
+  consumerTab: "Drinks",
+  adminMenuTab: "Drinks",
+  cooldown: 0,
+  cooldownTimer: null,
+  pollTimer: null,
+  currentImgB64: "",  // for add/edit form
+};
+
+// ══════════════════════════════════════════════
+// STORAGE (localStorage)
+// ══════════════════════════════════════════════
+function lsGet(key) {
+  try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : null; } catch { return null; }
+}
+function lsSet(key, val) {
+  try { localStorage.setItem(key, JSON.stringify(val)); } catch {}
+}
+
+function loadAll() {
+  const m = lsGet(LS.menu);
+  const o = lsGet(LS.orders);
+  const c = lsGet(LS.counter);
+  if (m) state.menu = m;
+  else { state.menu = {}; CATEGORIES.forEach(cat => state.menu[cat] = []); }
+  if (o) state.orders = o;
+  if (c) state.counter = c;
+}
+function saveMenu()    { lsSet(LS.menu,    state.menu);    }
+function saveOrders()  { lsSet(LS.orders,  state.orders);  }
+function saveCounter() { lsSet(LS.counter, state.counter); }
+
+function syncFromStorage() {
+  const m = lsGet(LS.menu);
+  const o = lsGet(LS.orders);
+  if (m) { state.menu = m; }
+  if (o) { state.orders = o; }
+  if (state.mode === 'consumer') renderMenuGrid();
+  if (state.mode === 'admin')    { renderOrders(); renderAdminMenuGrid(); renderStats(); }
+}
+
+function startPolling() {
+  stopPolling();
+  state.pollTimer = setInterval(() => {
+    if (document.visibilityState === 'visible') syncFromStorage();
+  }, 3000);
+}
+function stopPolling() {
+  if (state.pollTimer) { clearInterval(state.pollTimer); state.pollTimer = null; }
+}
+
+// ══════════════════════════════════════════════
+// UTILS
+// ══════════════════════════════════════════════
+const fmt = n => `₱${parseFloat(n||0).toFixed(2)}`;
+const uid = () => `i_${Date.now()}_${Math.random().toString(36).slice(2,6)}`;
+const esc = s => String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+
+function fileToB64(file) {
+  return new Promise((res, rej) => {
+    const r = new FileReader();
+    r.onload = e => res(e.target.result);
+    r.onerror = rej;
+    r.readAsDataURL(file);
+  });
+}
+
+// ══════════════════════════════════════════════
+// THEME
+// ══════════════════════════════════════════════
+function applyTheme() {
+  document.body.classList.toggle('dark',  state.dark);
+  document.body.classList.toggle('light', !state.dark);
+  const label = state.dark ? '☀️' : '🌙';
+  const txt   = state.dark ? 'Light' : 'Dark';
+  ['landThemeBtn','cThemeBtn','aThemeBtn'].forEach(id => {
+    const btn = document.getElementById(id);
+    if (btn) btn.innerHTML = `${label} <span>${txt}</span>`;
+  });
+}
+function toggleTheme() {
+  state.dark = !state.dark;
+  localStorage.setItem('test:dark', state.dark ? '1' : '0');
+  applyTheme();
+}
+
+// ══════════════════════════════════════════════
+// TOAST
+// ══════════════════════════════════════════════
+function toast(msg, type = 'info') {
+  const el = document.createElement('div');
+  el.className = `toast ${type}`;
+  el.textContent = msg;
+  document.getElementById('toast-container').appendChild(el);
+  setTimeout(() => el.remove(), 3000);
+}
+
+// ══════════════════════════════════════════════
+// MODAL HELPERS
+// ══════════════════════════════════════════════
+function openModal(id)  { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+// ══════════════════════════════════════════════
+// SCREEN SWITCHING
+// ══════════════════════════════════════════════
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+function exitToLanding() {
+  stopPolling();
+  state.mode = null;
+  state.cart = [];
+  if (state.cooldownTimer) { clearInterval(state.cooldownTimer); state.cooldownTimer = null; state.cooldown = 0; }
+  showScreen('landing');
+}
+
+// ══════════════════════════════════════════════
+// LANDING → CONSUMER
+// ══════════════════════════════════════════════
+function enterConsumer() {
+  state.mode = 'consumer';
+  state.cart = [];
+  state.consumerTab = 'Drinks';
+  showScreen('consumerScreen');
+  buildConsumerTabs();
+  renderMenuGrid();
+  renderCart();
+  startPolling();
+}
+
+// ══════════════════════════════════════════════
+// LANDING → ADMIN
+// ══════════════════════════════════════════════
+function openAdminLogin() {
+  document.getElementById('pinInput').value = '';
+  document.getElementById('pinError').textContent = '';
+  openModal('adminLoginModal');
+  setTimeout(() => document.getElementById('pinInput').focus(), 100);
+}
+
+function checkPin() {
+  const val = document.getElementById('pinInput').value;
+  if (val === ADMIN_PIN) {
+    closeModal('adminLoginModal');
+    enterAdmin();
+  } else {
+    document.getElementById('pinError').textContent = 'Incorrect PIN. Try again.';
+    document.getElementById('pinInput').value = '';
+  }
+}
+
+function enterAdmin() {
+  state.mode = 'admin';
+  state.adminMenuTab = 'Drinks';
+  showScreen('adminScreen');
+  buildAdminTabs();
+  renderStats();
+  renderOrders();
+  renderAdminMenuGrid();
+  startPolling();
+}
+
+// ══════════════════════════════════════════════
+// CONSUMER — TABS
+// ══════════════════════════════════════════════
+function buildConsumerTabs() {
+  const bar = document.getElementById('consumerTabs');
+  bar.innerHTML = CATEGORIES.map(cat => `
+    <button class="tab-btn${cat===state.consumerTab?' active':''}" onclick="switchConsumerTab('${esc(cat)}')">
+      ${CAT_ICONS[cat]} ${esc(cat)}
+    </button>
+  `).join('');
+}
+
+function switchConsumerTab(cat) {
+  state.consumerTab = cat;
+  buildConsumerTabs();
+  renderMenuGrid();
+}
+
+// ══════════════════════════════════════════════
+// CONSUMER — MENU GRID
+// ══════════════════════════════════════════════
+function renderMenuGrid() {
+  document.getElementById('menuSectionTitle').textContent = `${CAT_ICONS[state.consumerTab]} ${state.consumerTab}`;
+  const items = state.menu[state.consumerTab] || [];
+  const grid  = document.getElementById('menuGrid');
+  if (!items.length) {
+    grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1"><div class="empty-state-icon">🍽️</div>No items in this category yet.</div>`;
+    return;
+  }
+  grid.innerHTML = items.map(item => `
+    <div class="menu-card" onclick="addToCart('${esc(item.id)}')">
+      ${item.image
+        ? `<img class="menu-card-img" src="${esc(item.image)}" alt="${esc(item.name)}">`
+        : `<div class="menu-card-placeholder">${CAT_ICONS[item.category]||'🍽️'}</div>`
+      }
+      <div class="menu-card-body">
+        <div class="menu-card-name">${esc(item.name)}</div>
+        <div class="menu-card-desc">${esc(item.desc||'')}</div>
+        <div class="menu-card-footer">
+          <div class="menu-card-price">${fmt(item.price)}</div>
+          <button class="add-btn" onclick="event.stopPropagation();addToCart('${esc(item.id)}')">+</button>
+        </div>
+      </div>
+    </div>
+  `).join('');
+}
+
+// ══════════════════════════════════════════════
+// CONSUMER — CART
+// ══════════════════════════════════════════════
+function findItem(id) {
+  for (const cat of CATEGORIES) {
+    const found = (state.menu[cat]||[]).find(i => i.id === id);
+    if (found) return found;
+  }
+  return null;
+}
+
+function addToCart(id) {
+  const item = findItem(id);
+  if (!item) return;
+  const ex = state.cart.find(c => c.id === id);
+  if (ex) ex.qty++;
+  else state.cart.push({ id: item.id, name: item.name, price: item.price, qty: 1 });
+  renderCart();
+  toast(`${item.name} added`, 'success');
+}
+
+function changeQty(id, delta) {
+  const idx = state.cart.findIndex(c => c.id === id);
+  if (idx === -1) return;
+  state.cart[idx].qty += delta;
+  if (state.cart[idx].qty <= 0) state.cart.splice(idx, 1);
+  renderCart();
+}
+
+function renderCart() {
+  const total = state.cart.reduce((s,c) => s + c.price*c.qty, 0);
+  const container = document.getElementById('cartItems');
+  if (!state.cart.length) {
+    container.innerHTML = '<div class="cart-empty">Your cart is empty</div>';
+  } else {
+    container.innerHTML = state.cart.map(c => `
+      <div class="cart-item">
+        <div class="cart-item-name">${esc(c.name)}</div>
+        <div class="qty-row">
+          <button class="qty-btn" onclick="changeQty('${esc(c.id)}',-1)">−</button>
+          <span class="qty-num">${c.qty}</span>
+          <button class="qty-btn" onclick="changeQty('${esc(c.id)}',1)">+</button>
+        </div>
+        <div class="cart-item-price">${fmt(c.price*c.qty)}</div>
+      </div>
+    `).join('');
+  }
+  document.getElementById('cartTotal').textContent = fmt(total);
+  updatePlaceOrderBtn();
+}
+
+function updatePlaceOrderBtn() {
+  const btn = document.getElementById('placeOrderBtn');
+  if (!btn) return;
+  if (state.cooldown > 0) {
+    btn.disabled = true;
+    btn.classList.add('cooldown');
+    btn.classList.remove('place-order-btn');
+    btn.textContent = `Please wait… ${state.cooldown}s`;
+  } else if (!state.cart.length) {
+    btn.disabled = true;
+    btn.classList.remove('cooldown');
+    btn.textContent = 'Place Order';
+  } else {
+    btn.disabled = false;
+    btn.classList.remove('cooldown');
+    btn.textContent = 'Place Order';
+  }
+}
+
+// ══════════════════════════════════════════════
+// CONSUMER — PLACE ORDER
+// ══════════════════════════════════════════════
+async function placeOrder() {
+  if (!state.cart.length || state.cooldown > 0) return;
+  state.counter++;
+  const orderNum = state.counter;
+  const order = {
+    num: orderNum,
+    items: state.cart.map(c => ({...c})),
+    total: state.cart.reduce((s,c) => s + c.price*c.qty, 0),
+    status: 'pending',
+    ts: new Date().toLocaleTimeString()
+  };
+  state.orders.unshift(order);
+  saveOrders();
+  saveCounter();
+  state.cart = [];
+  renderCart();
+
+  // Show confirm modal (no backdrop-dismiss)
+  document.getElementById('confirmNum').textContent = `#${orderNum}`;
+  openModal('orderConfirmModal');
+
+  // Start cooldown
+  state.cooldown = COOLDOWN_SEC;
+  updatePlaceOrderBtn();
+  state.cooldownTimer = setInterval(() => {
+    state.cooldown--;
+    updatePlaceOrderBtn();
+    if (state.cooldown <= 0) {
+      clearInterval(state.cooldownTimer);
+      state.cooldownTimer = null;
+    }
+  }, 1000);
+}
+
+function closeOrderConfirm() {
+  closeModal('orderConfirmModal');
+}
+
+// ══════════════════════════════════════════════
+// ADMIN — STATS
+// ══════════════════════════════════════════════
+function renderStats() {
+  const revenue  = state.orders.filter(o => o.status==='accepted').reduce((s,o) => s+o.total, 0);
+  const accepted = state.orders.filter(o => o.status==='accepted').length;
+  const pending  = state.orders.filter(o => o.status==='pending').length;
+  const declined = state.orders.filter(o => o.status==='declined').length;
+
+  const stats = [
+    { label:'Total Revenue', val: fmt(revenue),        col:'var(--success)' },
+    { label:'Total Orders',  val: state.orders.length, col:'var(--accent)'  },
+    { label:'Accepted',      val: accepted,             col:'var(--success)' },
+    { label:'Pending',       val: pending,              col:'var(--orange)'  },
+    { label:'Declined',      val: declined,             col:'var(--danger)'  },
+  ];
+  document.getElementById('statsRow').innerHTML = stats.map(s => `
+    <div class="stat-card">
+      <div class="stat-label">${s.label}</div>
+      <div class="stat-val" style="color:${s.col}">${s.val}</div>
+    </div>
+  `).join('');
+}
+
+// ══════════════════════════════════════════════
+// ADMIN — ORDERS TABLE
+// ══════════════════════════════════════════════
+function renderOrders() {
+  const wrap = document.getElementById('ordersWrap');
+  if (!state.orders.length) {
+    wrap.innerHTML = '<div class="no-content">No orders yet.</div>';
+    return;
+  }
+  wrap.innerHTML = `
+    <div class="orders-table-wrap">
+      <table class="orders-table">
+        <thead>
+          <tr>
+            <th>Order #</th><th>Time</th><th>Items</th><th>Total</th><th>Status</th><th>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${state.orders.map(o => `
+            <tr>
+              <td><strong style="font-family:monospace;color:var(--accent)">#${o.num}</strong></td>
+              <td style="color:var(--muted);white-space:nowrap;font-size:0.75rem">${esc(o.ts)}</td>
+              <td class="order-items-list">${o.items.map(i=>`${i.qty}× ${esc(i.name)}`).join('<br>')}</td>
+              <td><span style="font-family:monospace;color:var(--accent)">${fmt(o.total)}</span></td>
+              <td><span class="badge badge-${o.status}">${o.status}</span></td>
+              <td>
+                ${o.status==='pending' ? `
+                  <div class="action-wrap">
+                    <button class="btn-accept" onclick="setOrderStatus(${o.num},'accepted')">✓ Accept</button>
+                    <button class="btn-decline" onclick="setOrderStatus(${o.num},'declined')">✗ Decline</button>
+                  </div>
+                ` : `<span style="color:var(--muted);font-size:0.78rem">—</span>`}
+              </td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    </div>
+  `;
+}
+
+function setOrderStatus(num, status) {
+  const order = state.orders.find(o => o.num === num);
+  if (!order) return;
+  order.status = status;
+  saveOrders();
+  renderOrders();
+  renderStats();
+  toast(`Order #${num} → ${status}`, status==='declined' ? 'error' : 'success');
+}
+
+// ══════════════════════════════════════════════
+// ADMIN — MENU TABS
+// ══════════════════════════════════════════════
+function buildAdminTabs() {
+  document.getElementById('adminTabs').innerHTML = CATEGORIES.map(cat => `
+    <button class="admin-tab-btn${cat===state.adminMenuTab?' active':''}" onclick="switchAdminMenuTab('${esc(cat)}')">
+      ${CAT_ICONS[cat]} ${esc(cat)}
+    </button>
+  `).join('');
+  // Populate category select in form
+  const sel = document.getElementById('itemCategory');
+  sel.innerHTML = CATEGORIES.map(c => `<option value="${esc(c)}">${esc(c)}</option>`).join('');
+}
+
+function switchAdminMenuTab(cat) {
+  state.adminMenuTab = cat;
+  buildAdminTabs();
+  renderAdminMenuGrid();
+}
+
+// ══════════════════════════════════════════════
+// ADMIN — MENU GRID
+// ══════════════════════════════════════════════
+function renderAdminMenuGrid() {
+  const items = state.menu[state.adminMenuTab] || [];
+  const grid  = document.getElementById('adminMenuGrid');
+  if (!items.length) {
+    grid.innerHTML = '<div class="no-content">No items yet. Add one above.</div>';
+    return;
+  }
+  grid.innerHTML = items.map(item => `
+    <div class="admin-item-card">
+      ${item.image
+        ? `<img class="admin-item-img" src="${esc(item.image)}" alt="${esc(item.name)}">`
+        : `<div class="admin-item-placeholder">${CAT_ICONS[item.category]||'🍽️'}</div>`
+      }
+      <div class="admin-item-body">
+        <div class="admin-item-name">${esc(item.name)}</div>
+        <div class="admin-item-price">${fmt(item.price)}</div>
+        <div class="admin-item-desc">${esc(item.desc||'—')}</div>
+        <div class="admin-item-actions">
+          <button class="btn-edit" onclick="openEditItem('${esc(item.id)}')">✏ Edit</button>
+          <button class="btn-del"  onclick="deleteItem('${esc(item.id)}')">🗑 Delete</button>
+        </div>
+      </div>
+    </div>
+  `).join('');
+}
+
+// ══════════════════════════════════════════════
+// ADMIN — ADD / EDIT ITEM
+// ══════════════════════════════════════════════
+function openAddItem() {
+  document.getElementById('itemFormTitle').textContent = 'Add Item';
+  document.getElementById('itemFormSub').textContent   = 'Fill in the details below';
+  document.getElementById('editItemId').value = '';
+  document.getElementById('itemCategory').value = state.adminMenuTab;
+  document.getElementById('itemName').value  = '';
+  document.getElementById('itemPrice').value = '';
+  document.getElementById('itemDesc').value  = '';
+  clearImage();
+  openModal('itemFormModal');
+}
+
+function openEditItem(id) {
+  const item = findItemById(id);
+  if (!item) return;
+  document.getElementById('itemFormTitle').textContent = 'Edit Item';
+  document.getElementById('itemFormSub').textContent   = 'Modify the details below';
+  document.getElementById('editItemId').value = id;
+  document.getElementById('itemCategory').value = item.category;
+  document.getElementById('itemName').value  = item.name;
+  document.getElementById('itemPrice').value = item.price;
+  document.getElementById('itemDesc').value  = item.desc || '';
+  if (item.image) setImagePreview(item.image);
+  else clearImage();
+  openModal('itemFormModal');
+}
+
+function findItemById(id) {
+  for (const cat of CATEGORIES) {
+    const found = (state.menu[cat]||[]).find(i => i.id === id);
+    if (found) return found;
+  }
+  return null;
+}
+
+async function handleImageUpload(e) {
+  const file = e.target.files?.[0];
+  if (!file) return;
+  if (file.size > 2*1024*1024) { alert('Image must be under 2MB'); return; }
+  const b64 = await fileToB64(file);
+  setImagePreview(b64);
+}
+
+function setImagePreview(src) {
+  state.currentImgB64 = src;
+  document.getElementById('imgPlaceholder').style.display = 'none';
+  document.getElementById('imgPreview').src = src;
+  document.getElementById('imgPreview').style.display = 'block';
+  document.getElementById('imgRemoveBtn').style.display = 'flex';
+  document.getElementById('imgUploadZone').classList.add('has-img');
+}
+
+function clearImage() {
+  state.currentImgB64 = '';
+  document.getElementById('imgPlaceholder').style.display = 'flex';
+  document.getElementById('imgPreview').style.display = 'none';
+  document.getElementById('imgPreview').src = '';
+  document.getElementById('imgRemoveBtn').style.display = 'none';
+  document.getElementById('imgUploadZone').classList.remove('has-img');
+  document.getElementById('imgFileInput').value = '';
+}
+
+function saveItem() {
+  const name  = document.getElementById('itemName').value.trim();
+  const price = parseFloat(document.getElementById('itemPrice').value);
+  const desc  = document.getElementById('itemDesc').value.trim();
+  const cat   = document.getElementById('itemCategory').value;
+  const editId= document.getElementById('editItemId').value;
+
+  if (!name)                  { toast('Item name required', 'error'); return; }
+  if (isNaN(price)||price<0) { toast('Enter a valid price', 'error'); return; }
+
+  // Ensure all cats exist
+  CATEGORIES.forEach(c => { if (!state.menu[c]) state.menu[c] = []; });
+
+  if (editId) {
+    // Remove from old category
+    for (const c of CATEGORIES) state.menu[c] = state.menu[c].filter(i => i.id !== editId);
+    state.menu[cat].push({ id: editId, name, price, desc, image: state.currentImgB64, category: cat });
+    toast('Item updated!', 'success');
+  } else {
+    state.menu[cat].push({ id: uid(), name, price, desc, image: state.currentImgB64, category: cat });
+    toast('Item added!', 'success');
+  }
+
+  saveMenu();
+  closeModal('itemFormModal');
+  renderAdminMenuGrid();
+  // If consumer is open on same tab, it will pick up on next poll
+}
+
+function deleteItem(id) {
+  CATEGORIES.forEach(c => { state.menu[c] = (state.menu[c]||[]).filter(i => i.id !== id); });
+  saveMenu();
+  renderAdminMenuGrid();
+  toast('Item removed', 'info');
+}
+
+// ══════════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════════
+(function init() {
+  // Restore theme
+  const savedDark = localStorage.getItem('test:dark');
+  if (savedDark !== null) state.dark = savedDark === '1';
+  applyTheme();
+
+  loadAll();
+  showScreen('landing');
+})();
+</script>
 </body>
 </html>
