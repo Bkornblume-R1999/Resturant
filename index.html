@@ -4,6 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Test — Restaurant Ordering System</title>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 <style>
 /* ─── RESET ─── */
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -312,6 +314,49 @@ body.dark .land-logo{text-shadow:0 0 80px rgba(232,197,71,.25)}
 .no-data{text-align:center;padding:2.5rem;color:var(--muted);font-size:.88rem}
 .firebase-note{background:var(--surf2);border:1px solid var(--border);border-radius:10px;padding:.9rem 1.1rem;font-size:.8rem;color:var(--muted);line-height:1.6;margin-bottom:1.2rem}
 .firebase-note strong{color:var(--accent)}
+
+/* ORDERS SECTION — fixed height scrollable */
+.orders-scroll-wrap{max-height:420px;overflow-y:auto;overflow-x:auto}
+
+/* RESET ORDERS BUTTON */
+.btn-reset-orders{background:transparent;border:1px solid var(--danger);color:var(--danger);padding:.38rem .9rem;border-radius:8px;font-size:.78rem;font-weight:600;transition:all .2s;cursor:pointer}
+.btn-reset-orders:hover{background:var(--danger);color:#fff}
+
+/* SALES ANALYTICS TABS */
+.analytics-tabs{display:flex;border-bottom:1px solid var(--border);padding:0 1.4rem}
+.anly-tab{padding:.65rem 1.1rem;background:none;border:none;color:var(--muted);font-size:.82rem;cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap;transition:all .2s;font-weight:400}
+.anly-tab.active{color:var(--accent);border-bottom-color:var(--accent);font-weight:600}
+.analytics-body{padding:1.2rem 1.4rem}
+
+/* SALES GRID */
+.sales-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:.8rem;margin-bottom:1rem}
+.sale-card{background:var(--surf2);border:1px solid var(--border);border-radius:10px;padding:.9rem 1.1rem;display:flex;align-items:center;gap:.8rem}
+.sale-rank{font-family:monospace;font-size:1.1rem;font-weight:700;color:var(--muted);min-width:26px}
+.sale-rank.top1{color:var(--accent)}
+.sale-rank.top2{color:var(--text)}
+.sale-rank.top3{color:var(--orange)}
+.sale-info{flex:1;min-width:0}
+.sale-name{font-size:.87rem;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sale-cat{font-size:.7rem;color:var(--muted);margin-top:1px}
+.sale-count{text-align:right}
+.sale-qty{font-family:monospace;font-size:1.2rem;font-weight:700;color:var(--success)}
+.sale-lbl{font-size:.65rem;color:var(--muted);text-transform:uppercase;letter-spacing:.08em}
+
+/* ITEM MODAL — sizes & addons editor */
+.addon-editor{border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:4px}
+.addon-editor-hdr{display:flex;align-items:center;justify-content:space-between;padding:.55rem .8rem;background:var(--surf2);border-bottom:1px solid var(--border)}
+.addon-editor-title{font-size:.73rem;font-weight:600;color:var(--muted);letter-spacing:.05em;text-transform:uppercase}
+.btn-add-option{background:var(--accent);color:#0a0a08;border:none;border-radius:6px;padding:.28rem .7rem;font-size:.73rem;font-weight:700;cursor:pointer;transition:all .15s}
+.btn-add-option:hover{opacity:.85}
+.addon-list{padding:.5rem .6rem;display:flex;flex-direction:column;gap:5px;max-height:180px;overflow-y:auto}
+.addon-row{display:flex;align-items:center;gap:6px;background:var(--inp);border:1px solid var(--border);border-radius:7px;padding:.35rem .55rem}
+.addon-row input{background:transparent;border:none;outline:none;color:var(--text);font-size:.82rem;font-family:inherit}
+.addon-row input.addon-name-inp{flex:1;min-width:0}
+.addon-row input.addon-price-inp{width:70px;text-align:right;font-family:monospace;color:var(--accent)}
+.addon-price-prefix{font-size:.75rem;color:var(--muted);white-space:nowrap}
+.btn-rm-addon{background:transparent;border:none;color:var(--danger);font-size:1rem;cursor:pointer;padding:0 2px;line-height:1;opacity:.7;transition:opacity .15s;flex-shrink:0}
+.btn-rm-addon:hover{opacity:1}
+.addon-empty{text-align:center;padding:.6rem;color:var(--muted);font-size:.78rem}
 </style>
 </head>
 <body class="dark">
@@ -385,9 +430,23 @@ body.dark .land-logo{text-shadow:0 0 80px rgba(232,197,71,.25)}
     </div>
     <div class="stats-row" id="statsRow"></div>
     <div class="admin-section">
-      <div class="admin-sec-hdr"><div class="admin-sec-title">📋 Customer Orders</div></div>
-      <div id="ordersWrap"><div class="no-data">No orders yet.</div></div>
+      <div class="admin-sec-hdr">
+        <div class="admin-sec-title">📋 Customer Orders</div>
+        <button class="btn-reset-orders" onclick="openResetOrders()">🗑 Reset Orders</button>
+      </div>
+      <div class="orders-scroll-wrap">
+        <div id="ordersWrap"><div class="no-data">No orders yet.</div></div>
+      </div>
     </div>
+    <div class="admin-section">
+      <div class="admin-sec-hdr"><div class="admin-sec-title">📊 Sales Analytics</div></div>
+      <div class="analytics-tabs">
+        <button class="anly-tab active" onclick="switchAnalytics('daily')" id="anlyDaily">Today</button>
+        <button class="anly-tab" onclick="switchAnalytics('weekly')" id="anlyWeekly">This Week</button>
+      </div>
+      <div class="analytics-body" id="analyticsBody"><div class="no-data">No accepted orders yet.</div></div>
+    </div>
+
     <div class="admin-section">
       <div class="admin-sec-hdr">
         <div class="admin-sec-title">🍴 Menu Management</div>
@@ -548,6 +607,26 @@ body.dark .land-logo{text-shadow:0 0 80px rgba(232,197,71,.25)}
       <span>Mark as Not Available</span>
       <label class="sw"><input type="checkbox" id="iUnavail"><span class="sw-slider"></span></label>
     </div>
+    <!-- ─ SIZES EDITOR ─ -->
+    <div class="fg">
+      <div class="addon-editor">
+        <div class="addon-editor-hdr">
+          <span class="addon-editor-title">📏 Size Options</span>
+          <button class="btn-add-option" onclick="addSizeRow()">+ Add Size</button>
+        </div>
+        <div class="addon-list" id="sizeEditorList"><div class="addon-empty">No sizes — uses category default</div></div>
+      </div>
+    </div>
+    <!-- ─ ADDONS EDITOR ─ -->
+    <div class="fg">
+      <div class="addon-editor">
+        <div class="addon-editor-hdr">
+          <span class="addon-editor-title">➕ Add-on Options</span>
+          <button class="btn-add-option" onclick="addAddonRow()">+ Add Add-on</button>
+        </div>
+        <div class="addon-list" id="addonEditorList"><div class="addon-empty">No add-ons — uses category default</div></div>
+      </div>
+    </div>
     <div class="mact">
       <button class="btn-ghost" onclick="closeModal('itemModal')">Cancel</button>
       <button class="btn-prim org" onclick="saveItem()">Save Item</button>
@@ -564,6 +643,19 @@ body.dark .land-logo{text-shadow:0 0 80px rgba(232,197,71,.25)}
     <div class="mact">
       <button class="btn-ghost" onclick="closeModal('delModal')">Cancel</button>
       <button class="btn-prim red" onclick="confirmDelete()">Yes, Delete</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MODAL: RESET ORDERS CONFIRM ══ -->
+<div class="modal-overlay" id="resetOrdersModal">
+  <div class="modal-box" style="max-width:360px">
+    <div class="del-icon">⚠️</div>
+    <div class="modal-title" style="text-align:center;color:var(--danger)">Reset All Orders?</div>
+    <div class="del-msg">This will permanently delete <strong>all customer orders</strong> and reset the order counter. This <strong>cannot be undone</strong>.</div>
+    <div class="mact">
+      <button class="btn-ghost" onclick="closeModal('resetOrdersModal')">Cancel</button>
+      <button class="btn-prim red" onclick="confirmResetOrders()">Yes, Reset</button>
     </div>
   </div>
 </div>
@@ -624,30 +716,23 @@ const S = {
   pendingDelId:null,
   imgB64:"",
   custItem:null, custSugar:"100%", custSize:"Medium", custAddons:[],
-  pay:"cash",
+  pay:"cash", analyticsTab:"daily",
   fbReady:false, fbDB:null, fbListeners:{}, pollTimer:null
 };
 
-// ─── FIREBASE DYNAMIC IMPORT ───
+// ─── FIREBASE INIT ───
 const FB_CONFIGURED = !Object.values(FB_CONFIG).some(v => v.startsWith("REPLACE_"));
-
-async function initFirebase() {
+function initFirebase() {
   if (!FB_CONFIGURED) { S.fbReady = false; return; }
+  if (typeof firebase === "undefined") { S.fbReady = false; return; }
   try {
-    const { initializeApp }   = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js");
-    const { getDatabase, ref, set, get, onValue } = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js");
-    const app = initializeApp(FB_CONFIG);
-    S.fbDB = getDatabase(app);
-    S._ref = (p) => ref(S.fbDB, p);
-    S._set = (p, v) => set(ref(S.fbDB, p), v);
-    S._get = (p) => get(ref(S.fbDB, p));
-    S._on  = (p, cb) => { const unsub = onValue(ref(S.fbDB, p), snap => cb(snap.exists() ? snap.val() : null)); return unsub; };
+    if (!firebase.apps.length) firebase.initializeApp(FB_CONFIG);
+    S.fbDB = firebase.database();
+    S._set = (p, v) => S.fbDB.ref(p).set(v);
+    S._get = (p) => S.fbDB.ref(p).once("value");
+    S._on  = (p, cb) => { const r=S.fbDB.ref(p); r.on("value",s=>cb(s.exists()?s.val():null)); return ()=>r.off("value"); };
     S.fbReady = true;
-    console.log("✅ Firebase connected — multi-device sync active");
-  } catch(e) {
-    console.warn("Firebase init failed:", e.message);
-    S.fbReady = false;
-  }
+  } catch(e) { S.fbReady = false; }
 }
 
 // ─── STORAGE HELPERS ───
@@ -658,7 +743,7 @@ const LS = {
 
 async function dbGet(path) {
   if (S.fbReady) {
-    try { const s = await S._get(path); return s.exists() ? s.val() : null; } catch{}
+    try { const s = await S._get(path); return s.exists ? s.val() : null; } catch{}
   }
   return LS.get(path.replace(/\//g,":"));
 }
@@ -779,7 +864,7 @@ async function enterAdmin(){
   showScreen("adminScreen");
   await loadAll();
   if(!S.fbReady) document.getElementById("fbNote").style.display="";
-  buildATabs(); renderStats(); renderOrders(); renderAdminGrid();
+  buildATabs(); renderStats(); renderOrders(); renderAnalytics(); renderAdminGrid();
   startSync();
 }
 
@@ -813,15 +898,17 @@ function renderMenuGrid(){
 }
 
 // ─── ITEM CUSTOMISATION ───
+// S.custSizeObj = {name,price}, S.custAddonObjs = [{name,price}]
 function openCust(id){
   const item=findById(id); if(!item||item.unavailable) return;
-  const cat    = item.category;
-  const sizes  = CAT_SIZES[cat]  || ["Regular","Large"];
-  const addons = CAT_ADDONS[cat] || [];
+  const cat = item.category;
+  // Use item-custom sizes if defined, else fall back to category defaults (price 0)
+  const rawSizes  = item.customSizes  ? item.customSizes  : (CAT_SIZES[cat]||["Regular","Large"]).map(n=>({name:n,price:0}));
+  const rawAddons = item.customAddons ? item.customAddons : (CAT_ADDONS[cat]||[]).map(n=>({name:n,price:0}));
   const showSugar  = HAS_SUGAR.includes(cat);
-  const showAddons = addons.length > 0;
+  const showAddons = rawAddons.length > 0;
 
-  S.custItem=item; S.custSugar="100%"; S.custSize=sizes[0]; S.custAddons=[];
+  S.custItem=item; S.custSugar="100%"; S.custSizeObj=rawSizes[0]; S.custAddonObjs=[];
   document.getElementById("custName").textContent=item.name;
   document.getElementById("custPrice").textContent=fmt(item.price);
   document.getElementById("custNotes").value="";
@@ -830,38 +917,56 @@ function openCust(id){
   const iw=document.getElementById("custImgWrap");
   iw.innerHTML=item.image?`<img class="cust-img" src="${esc(item.image)}" alt="${esc(item.name)}">`:`<div class="cust-ph">${CAT_ICO[cat]||"🍽️"}</div>`;
 
-  // Sugar section (drinks only)
+  // Sugar
   document.getElementById("sugarSec").style.display=showSugar?"":"none";
   document.getElementById("sugarChips").innerHTML=SUGARS.map(s=>`<button class="chip${s===S.custSugar?" sel":""}" onclick="pickSugar('${s}')">${s}</button>`).join("");
 
-  // Size section — options vary per category
-  document.getElementById("sizeChips").innerHTML=sizes.map(s=>`<button class="chip${s===S.custSize?" sel":""}" onclick="pickSize('${s}')">${s}</button>`).join("");
+  // Sizes with optional price badge
+  document.getElementById("sizeChips").innerHTML=rawSizes.map((s,i)=>`<button class="chip${i===0?" sel":""}" onclick="pickSizeObj(${i})" data-si="${i}">${esc(s.name)}${s.price>0?` <small>+₱${s.price.toFixed(2)}</small>`:""}</button>`).join("");
+  S._custSizes = rawSizes;
 
-  // Add-ons section — options vary per category
+  // Add-ons
   document.getElementById("addonSec").style.display=showAddons?"":"none";
-  document.getElementById("addonChips").innerHTML=addons.map(a=>`<button class="chip multi" id="ao_${esc(a.replace(/\s/g,'_'))}" onclick="togAddon('${esc(a)}')">${esc(a)}</button>`).join("");
+  document.getElementById("addonChips").innerHTML=rawAddons.map((a,i)=>`<button class="chip multi" data-ai="${i}" onclick="togAddonObj(${i})">${esc(a.name)}${a.price>0?` <small>+₱${a.price.toFixed(2)}</small>`:""}</button>`).join("");
+  S._custAddons = rawAddons;
 
+  updateCustPrice();
   openModal("custModal");
 }
-function pickSugar(v){ S.custSugar=v; document.querySelectorAll("#sugarChips .chip").forEach(c=>c.classList.toggle("sel",c.textContent.trim()===v)); }
-function pickSize(v) { S.custSize=v;  document.querySelectorAll("#sizeChips .chip").forEach(c=>c.classList.toggle("sel",c.textContent.trim()===v)); }
-function togAddon(v){
-  const i=S.custAddons.indexOf(v); i>-1?S.custAddons.splice(i,1):S.custAddons.push(v);
-  const el=document.getElementById("ao_"+v.replace(/\s/g,"_")); if(el) el.classList.toggle("sel",S.custAddons.includes(v));
+function updateCustPrice(){
+  const item=S.custItem; if(!item) return;
+  const sizeExtra  = S.custSizeObj ? (S.custSizeObj.price||0) : 0;
+  const addonExtra = S.custAddonObjs.reduce((s,a)=>s+(a.price||0),0);
+  const total = item.price + sizeExtra + addonExtra;
+  document.getElementById("custPrice").textContent = fmt(total) + (sizeExtra||addonExtra ? ` (base ${fmt(item.price)})` : "");
+}
+function pickSugar(v){ S.custSugar=v; document.querySelectorAll("#sugarChips .chip").forEach(c=>c.classList.toggle("sel",c.textContent.trim().startsWith(v))); }
+function pickSizeObj(i){
+  S.custSizeObj=S._custSizes[i];
+  document.querySelectorAll("#sizeChips .chip").forEach(c=>c.classList.toggle("sel",parseInt(c.dataset.si)===i));
+  updateCustPrice();
+}
+function togAddonObj(i){
+  const a=S._custAddons[i];
+  const existing=S.custAddonObjs.findIndex(x=>x.name===a.name);
+  if(existing>-1) S.custAddonObjs.splice(existing,1); else S.custAddonObjs.push(a);
+  document.querySelectorAll("#addonChips .chip").forEach(c=>c.classList.toggle("sel",S.custAddonObjs.some(x=>x.name===S._custAddons[parseInt(c.dataset.ai)]?.name)));
+  updateCustPrice();
 }
 function addToCart(){
   const item=S.custItem; if(!item) return;
-  const cat     = item.category;
-  const addons  = CAT_ADDONS[cat] || [];
-  const showSugar  = HAS_SUGAR.includes(cat);
-  const showAddons = addons.length > 0;
+  const cat = item.category;
+  const showSugar = HAS_SUGAR.includes(cat);
   const notes=document.getElementById("custNotes").value.trim();
+  const sizeExtra  = S.custSizeObj ? (S.custSizeObj.price||0) : 0;
+  const addonExtra = S.custAddonObjs.reduce((s,a)=>s+(a.price||0),0);
+  const finalPrice = item.price + sizeExtra + addonExtra;
   const mods=[];
   if(showSugar) mods.push(`Sugar: ${S.custSugar}`);
-  mods.push(`Size: ${S.custSize}`);
-  if(showAddons&&S.custAddons.length) mods.push(`Add-ons: ${S.custAddons.join(", ")}`);
+  if(S.custSizeObj) mods.push(`Size: ${S.custSizeObj.name}${sizeExtra>0?" (+₱"+sizeExtra.toFixed(2)+")":""}`);
+  if(S.custAddonObjs.length) mods.push(`Add-ons: ${S.custAddonObjs.map(a=>a.name+(a.price>0?" (+₱"+a.price.toFixed(2)+")":"")).join(", ")}`);
   if(notes) mods.push(`Note: ${notes}`);
-  S.cart.push({cartId:uid(), id:item.id, name:item.name, price:item.price, qty:1, mods});
+  S.cart.push({cartId:uid(), id:item.id, name:item.name, price:finalPrice, qty:1, mods});
   renderCart(); closeModal("custModal"); toast(`${item.name} added`,"success");
 }
 
@@ -941,7 +1046,7 @@ async function finalizeOrder(){
   const order={
     num, items:S.cart.map(c=>({name:c.name,qty:c.qty,price:c.price,mods:c.mods||[]})),
     total, status:isOnline?"accepted":"pending",
-    payment:S.pay, ts:new Date().toLocaleTimeString()
+    payment:S.pay, ts:new Date().toLocaleTimeString(), date:new Date().toLocaleDateString()
   };
   S.orders.unshift(order);
   await saveOrders(); await saveCounter();
@@ -960,6 +1065,78 @@ async function finalizeOrder(){
   S.cdTimer=setInterval(()=>{ S.cd--; updPlaceBtn(); if(S.cd<=0){clearInterval(S.cdTimer);S.cdTimer=null;} },1000);
 }
 function closeDone(){ closeModal("confirmModal"); }
+
+// ─── RESET ORDERS ───
+function openResetOrders(){ openModal("resetOrdersModal"); }
+async function confirmResetOrders(){
+  S.orders=[]; S.counter=1000;
+  await saveOrders(); await saveCounter();
+  closeModal("resetOrdersModal");
+  renderOrders(); renderStats(); renderAnalytics();
+  toast("All orders have been reset","info");
+}
+
+// ─── ANALYTICS ───
+function switchAnalytics(tab){
+  S.analyticsTab=tab;
+  document.getElementById("anlyDaily").classList.toggle("active",tab==="daily");
+  document.getElementById("anlyWeekly").classList.toggle("active",tab==="weekly");
+  renderAnalytics();
+}
+function renderAnalytics(){
+  const body=document.getElementById("analyticsBody");
+  if(!body) return;
+  const now=new Date();
+  const accepted=S.orders.filter(o=>o.status==="accepted");
+
+  // Filter by period
+  let filtered;
+  if(S.analyticsTab==="daily"){
+    const todayStr=now.toLocaleDateString();
+    filtered=accepted.filter(o=>{
+      // orders have ts as toLocaleTimeString — check if stored date matches
+      if(o.date) return o.date===todayStr;
+      return true; // if no date field, show all (legacy orders)
+    });
+  } else {
+    // weekly: last 7 days
+    const weekAgo=new Date(now); weekAgo.setDate(weekAgo.getDate()-6);
+    filtered=accepted.filter(o=>{
+      if(o.date){ const d=new Date(o.date); return d>=weekAgo&&d<=now; }
+      return true;
+    });
+  }
+
+  if(!filtered.length){ body.innerHTML='<div class="no-data">No accepted orders for this period.</div>'; return; }
+
+  // Tally items
+  const tally={};
+  filtered.forEach(o=>(o.items||[]).forEach(i=>{
+    if(!tally[i.name]) tally[i.name]={name:i.name,qty:0,revenue:0};
+    tally[i.name].qty+=i.qty; tally[i.name].revenue+=(i.price*i.qty);
+  }));
+  const sorted=Object.values(tally).sort((a,b)=>b.qty-a.qty);
+
+  const rankClass=r=>r===0?"top1":r===1?"top2":r===2?"top3":"";
+  body.innerHTML=`
+    <div style="font-size:.75rem;color:var(--muted);margin-bottom:.8rem">
+      ${S.analyticsTab==="daily"?"Today's":"This week's"} top items from <strong>${filtered.length}</strong> accepted order${filtered.length!==1?"s":""}
+    </div>
+    <div class="sales-grid">
+      ${sorted.map((item,i)=>`
+        <div class="sale-card">
+          <div class="sale-rank ${rankClass(i)}">#${i+1}</div>
+          <div class="sale-info">
+            <div class="sale-name">${esc(item.name)}</div>
+            <div class="sale-cat">${fmt(item.revenue)} revenue</div>
+          </div>
+          <div class="sale-count">
+            <div class="sale-qty">${item.qty}</div>
+            <div class="sale-lbl">sold</div>
+          </div>
+        </div>`).join("")}
+    </div>`;
+}
 
 // ─── ADMIN STATS ───
 function renderStats(){
@@ -997,7 +1174,7 @@ function renderOrders(){
 }
 async function setStatus(num,status){
   const o=S.orders.find(o=>o.num===num); if(!o) return;
-  o.status=status; await saveOrders(); renderOrders(); renderStats();
+  o.status=status; await saveOrders(); renderOrders(); renderStats(); renderAnalytics();
   toast(`Order #${num} → ${status}`,status==="declined"?"error":"success");
 }
 
@@ -1056,7 +1233,7 @@ function openAddItem(){
   document.getElementById("iPrice").value="";
   document.getElementById("iDesc").value="";
   document.getElementById("iUnavail").checked=false;
-  clearImg(); openModal("itemModal");
+  clearImg(); populateSizeEditor(null); populateAddonEditor(null); openModal("itemModal");
 }
 function openEditItem(id){
   const item=findById(id); if(!item) return;
@@ -1069,8 +1246,53 @@ function openEditItem(id){
   document.getElementById("iDesc").value=item.desc||"";
   document.getElementById("iUnavail").checked=!!item.unavailable;
   item.image?setImg(item.image):clearImg();
+  populateSizeEditor(item.customSizes||null); populateAddonEditor(item.customAddons||null);
   openModal("itemModal");
 }
+// ─── SIZE / ADDON EDITOR HELPERS ───
+function addSizeRow(name="",price=0){
+  const list=document.getElementById("sizeEditorList");
+  const empty=list.querySelector(".addon-empty"); if(empty) empty.remove();
+  const row=document.createElement("div"); row.className="addon-row";
+  row.innerHTML=`<input class="addon-name-inp" placeholder="e.g. Large" value="${esc(name)}">
+    <span class="addon-price-prefix">+₱</span>
+    <input class="addon-price-inp" type="number" min="0" step="0.5" placeholder="0" value="${price}">
+    <button class="btn-rm-addon" onclick="this.closest('.addon-row').remove();checkEmpty('sizeEditorList','No sizes — uses category default')">✕</button>`;
+  list.appendChild(row);
+}
+function addAddonRow(name="",price=0){
+  const list=document.getElementById("addonEditorList");
+  const empty=list.querySelector(".addon-empty"); if(empty) empty.remove();
+  const row=document.createElement("div"); row.className="addon-row";
+  row.innerHTML=`<input class="addon-name-inp" placeholder="e.g. Extra Cheese" value="${esc(name)}">
+    <span class="addon-price-prefix">+₱</span>
+    <input class="addon-price-inp" type="number" min="0" step="0.5" placeholder="0" value="${price}">
+    <button class="btn-rm-addon" onclick="this.closest('.addon-row').remove();checkEmpty('addonEditorList','No add-ons — uses category default')">✕</button>`;
+  list.appendChild(row);
+}
+function checkEmpty(listId, msg){
+  const list=document.getElementById(listId);
+  if(!list.querySelector(".addon-row")){ list.innerHTML=`<div class="addon-empty">${msg}</div>`; }
+}
+function readEditorRows(listId){
+  return [...document.getElementById(listId).querySelectorAll(".addon-row")].map(row=>{
+    const inputs=row.querySelectorAll("input");
+    return { name: inputs[0].value.trim(), price: parseFloat(inputs[1].value)||0 };
+  }).filter(r=>r.name);
+}
+function populateSizeEditor(sizes){
+  const list=document.getElementById("sizeEditorList");
+  list.innerHTML="";
+  if(!sizes||!sizes.length){ list.innerHTML='<div class="addon-empty">No sizes — uses category default</div>'; return; }
+  sizes.forEach(s=>addSizeRow(s.name,s.price));
+}
+function populateAddonEditor(addons){
+  const list=document.getElementById("addonEditorList");
+  list.innerHTML="";
+  if(!addons||!addons.length){ list.innerHTML='<div class="addon-empty">No add-ons — uses category default</div>'; return; }
+  addons.forEach(a=>addAddonRow(a.name,a.price));
+}
+
 async function saveItem(){
   const name =document.getElementById("iName").value.trim();
   const price=parseFloat(document.getElementById("iPrice").value);
@@ -1078,15 +1300,20 @@ async function saveItem(){
   const cat  =document.getElementById("iCat").value;
   const editId=document.getElementById("editId").value;
   const unavailable=document.getElementById("iUnavail").checked;
+  const customSizes  = readEditorRows("sizeEditorList");
+  const customAddons = readEditorRows("addonEditorList");
   if(!name)             { toast("Item name required","error"); return; }
   if(isNaN(price)||price<0){ toast("Enter a valid price","error"); return; }
   CATS.forEach(c=>{ if(!S.menu[c]) S.menu[c]=[]; });
+  const itemData = {name,price,desc,image:S.imgB64,category:cat,unavailable,
+    customSizes: customSizes.length ? customSizes : null,
+    customAddons: customAddons.length ? customAddons : null};
   if(editId){
     for(const c of CATS) S.menu[c]=S.menu[c].filter(i=>i.id!==editId);
-    S.menu[cat].push({id:editId,name,price,desc,image:S.imgB64,category:cat,unavailable});
+    S.menu[cat].push({id:editId,...itemData});
     toast("Item updated!","success");
   } else {
-    S.menu[cat].push({id:uid(),name,price,desc,image:S.imgB64,category:cat,unavailable});
+    S.menu[cat].push({id:uid(),...itemData});
     toast("Item added!","success");
   }
   await saveMenu(); closeModal("itemModal"); renderAdminGrid();
@@ -1101,8 +1328,8 @@ function clearImg(){ S.imgB64=""; document.getElementById("imgPh").style.display
 (async function init(){
   const saved=LS.get("test:dark"); if(saved!==null) S.dark=saved===1||saved==="1"||saved===true;
   applyTheme();
-  await initFirebase();
-  await loadAll();
+  initFirebase();
+  try { await loadAll(); } catch(e){}
   showScreen("landing");
 })();
 </script>
